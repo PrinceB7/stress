@@ -307,6 +307,13 @@ def get_behavioral_dataset_header(moments):
     return f"timestamp,{','.join(settings.all_features)},{','.join([moments_map[moment] for moment in moments])},gt_self_report,gt_timestamp,gt_pss_control,gt_pss_difficult,gt_pss_confident,gt_pss_yourway,gt_likert_stresslevel,gt_score,gt_label\n"
 
 
+# makes suitable behavioral columns to select
+def get_behavior_enhanced_selected_features(moments_string):
+    moments_map = {1: '1st_moment', 2: '2nd_moment', 3: '3rd_moment', 4: '4th_moment'}
+    moments = [int(moment) for moment in moments_string.split(',')]
+    return settings.basic_selected_features + [moments_map[moment] for moment in moments]
+
+
 # calculates combinations of the elements in array
 def calculate_combinations(array):
     def recursive_combinations(array):

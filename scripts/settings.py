@@ -18,6 +18,7 @@ ppg_filter_test_results_dir_path = f'{root_dir_path}/data/test results/2. ppg fi
 acc_filter_test_results_dir_path = f'{root_dir_path}/data/test results/3. acc filtered'
 combined_filter_test_results_dir_path = f'{root_dir_path}/data/test results/4. combined filtered'
 behavioral_data_test_results_dir_path = f'{root_dir_path}/data/test results/5. behavioral data'
+behavioral_data_combinations_test_results_dir_path = f'{root_dir_path}/data/test results/6. behavioral data combinations'
 
 # participants / emails
 participants = [
