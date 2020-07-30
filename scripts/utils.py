@@ -11,7 +11,7 @@ from imblearn.over_sampling import SMOTE
 from scipy.stats import moment
 import statistics
 import datetime
-import settings
+from scripts import settings
 import xgboost
 import pandas
 import numpy
@@ -293,14 +293,42 @@ def calculate_features(rr_intervals):
 
 
 # calculate behavioral features from provided acceleration readings
-def calculate_behavioral_features(acc_values):
+def calculate_behavioral_features(acc_values, moments=None):
     acc_magnitudes = [math.sqrt(x ** 2 + y ** 2 + z ** 2) for x, y, z in acc_values]
-    return [
-        moment(acc_magnitudes, moment=1),
-        moment(acc_magnitudes, moment=2),
-        moment(acc_magnitudes, moment=3),
-        moment(acc_magnitudes, moment=4)
-    ]
+    if moment is None:
+        return [moment(acc_magnitudes, moment=_moment) for _moment in range(1, 5)]
+    else:
+        return [moment(acc_magnitudes, moment=_moment) for _moment in moments]
+
+
+# makes suitable behavioral dataset header for the given moments
+def get_behavioral_dataset_header(moments):
+    moments_map = {1: '1st_moment', 2: '2nd_moment', 3: '3rd_moment', 4: '4th_moment'}
+    return f"timestamp,{','.join(settings.all_features)},{','.join([moments_map[moment] for moment in moments])},gt_self_report,gt_timestamp,gt_pss_control,gt_pss_difficult,gt_pss_confident,gt_pss_yourway,gt_likert_stresslevel,gt_score,gt_label\n"
+
+
+# calculates combinations of the elements in array
+def calculate_combinations(array):
+    def recursive_combinations(array):
+        if len(array) == 1:
+            return [[], [array[0]]]
+        else:
+            res = []
+            for i, val in enumerate(array):
+                sub_array = array[:i] + array[i + 1:]
+                for combination in recursive_combinations(array=sub_array):
+                    combination.sort()
+                    if combination not in res:
+                        res += [combination]
+                    combination = [val] + combination
+                    combination.sort()
+                    if combination not in res:
+                        res += [combination]
+            return res
+
+    combinations = recursive_combinations(array=array)
+    combinations.remove([])
+    return combinations
 
 
 # loads dataset, excluding some samples if needed

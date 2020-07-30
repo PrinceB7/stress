@@ -10,6 +10,7 @@ ppg_filtered_dataset_dir_path = f'{root_dir_path}/data/processed dataset/2. ppg 
 acc_filtered_dataset_dir_path = f'{root_dir_path}/data/processed dataset/3. acc filtered dataset'
 combined_filtered_dataset_dir_path = f'{root_dir_path}/data/processed dataset/4. combined filtered dataset'
 behavioral_features_dataset_dir_path = f'{root_dir_path}/data/processed dataset/5. behavioral features dataset'
+behavioral_features_combinations_dir_path = f'{root_dir_path}/data/processed dataset/6. behavioral features combinations'
 
 # result paths
 no_filter_test_results_dir_path = f'{root_dir_path}/data/test results/1. not filtered'

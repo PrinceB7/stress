@@ -1,5 +1,4 @@
-from scripts import utils
-import settings
+from scripts import utils, settings
 import time
 import os
 

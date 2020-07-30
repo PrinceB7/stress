@@ -1,5 +1,4 @@
-from scripts import utils
-import settings
+from scripts import utils, settings
 
 counter = 1
 for participant in settings.participants:

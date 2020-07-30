@@ -1,5 +1,4 @@
-from scripts import utils
-import settings
+from scripts import utils, settings
 import time
 import os
 
@@ -15,7 +14,7 @@ for filename in [el for el in os.listdir(settings.combined_filtered_dataset_dir_
 
     all_params[participant] = []
     all_scores[participant] = []
-    params, scores = utils.participant_train_test_xgboost(participant=participant, train_dir=settings.combined_filtered_dataset_dir_path, selected_features=settings.basic_selected_features, tuning=False)
+    params, scores = utils.participant_train_test_xgboost(participant=participant, train_dir=settings.combined_filtered_dataset_dir_path, selected_features=settings.basic_selected_features, tuning=True)
 
     if len(params_cols) + len(scores_cols) == 0:
         params_cols = list(params.keys())
