@@ -1,8 +1,9 @@
-from scripts import utils, settings
+from scripts import settings
+from scripts import utils
 
 counter = 1
 for participant in settings.participants:
-    with open(f'{settings.behavioral_features_dataset_dir_path}/{participant}.csv', 'w+') as w, open(f'{settings.combined_filtered_dataset_dir_path}/{participant}.csv', 'r') as r:
+    with open(f'{settings.behavioral_features_dataset_dir}/{participant}.csv', 'w+') as w, open(f'{settings.combined_filtered_dataset_dir}/{participant}.csv', 'r') as r:
         w.write(settings.behavioral_dataset_header)
 
         print(f"{counter}. {participant}; behavioral-feature calculation using acceleration-signal readings")
@@ -29,7 +30,7 @@ for participant in settings.participants:
 # print stats for features - acc filter
 print('participant-email\t\tsamples\t\tstressed\tnot-stressed')
 for participant in settings.participants:
-    with open('{0}/{1}.csv'.format(settings.behavioral_features_dataset_dir_path, participant), 'r') as r:
+    with open('{0}/{1}.csv'.format(settings.behavioral_features_dataset_dir, participant), 'r') as r:
         lines = r.readlines()[1:]
         print('{0}\t\t{1}\t\t{2}\t\t{3}'.format(
             participant[:20],

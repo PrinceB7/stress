@@ -1,4 +1,5 @@
-from scripts import utils, settings
+from scripts import settings
+from scripts import utils
 import os
 import time
 
@@ -9,12 +10,12 @@ overall_count = len(settings.participants) * len(combinations)
 counter = 1
 participants_acc_datasets = {}
 for moments in combinations:
-    moments_directory = f"{settings.behavioral_features_combinations_dir_path}/{','.join([str(moment) for moment in moments])}"
+    moments_directory = f"{settings.behavioral_features_combinations_dir}/{','.join([str(moment) for moment in moments])}"
     if not os.path.exists(moments_directory):
         os.mkdir(moments_directory)
     for participant in settings.participants:
         sub_start_time = time.time()
-        with open(f'{moments_directory}/{participant}.csv', 'w+') as w, open(f'{settings.combined_filtered_dataset_dir_path}/{participant}.csv', 'r') as r:
+        with open(f'{moments_directory}/{participant}.csv', 'w+') as w, open(f'{settings.combined_filtered_dataset_dir}/{participant}.csv', 'r') as r:
             w.write(utils.get_behavioral_dataset_header(moments=moments))
 
             print(f"{counter}/{overall_count}. {participant}; behavioral-feature calculation using acceleration-signal readings")
