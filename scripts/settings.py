@@ -1513,14 +1513,14 @@ m = 30
 # best test numbers
 no_filter_best_tests = {
     'aliceblackwood123@gmail.com': 6,
-    'azizsambo58@gmail.com': 25,
-    'jskim@nsl.inha.ac.kr': 17,
+    'azizsambo58@gmail.com': 15,  # 25,
+    'jskim@nsl.inha.ac.kr': 10,  # 17,
     'jumabek4044@gmail.com': 22,
     'laurentkalpers3@gmail.com': 5,
     'mr.khikmatillo@gmail.com': 22,
     'nazarov7mu@gmail.com': 26,
-    'nnarziev@gmail.com': 24,
-    'nslabinha@gmail.com': 13,
+    'nnarziev@gmail.com': 4,  # 24,
+    'nslabinha@gmail.com': 6,  # 13,
     'salman@nsl.inha.ac.kr': 1,
 }
 ppg_best_tests = {
@@ -1547,15 +1547,15 @@ acc_best_tests = {
     'nslabinha@gmail.com': 25,
     'salman@nsl.inha.ac.kr': 3,
 }
-# combined_best_tests = {
-#     'aliceblackwood123@gmail.com': ,
-#     'azizsambo58@gmail.com': ,
-#     'jskim@nsl.inha.ac.kr': ,
-#     'jumabek4044@gmail.com': ,
-#     'laurentkalpers3@gmail.com': ,
-#     'mr.khikmatillo@gmail.com': ,
-#     'nazarov7mu@gmail.com': ,
-#     'nnarziev@gmail.com': ,
-#     'nslabinha@gmail.com': ,
-#     'salman@nsl.inha.ac.kr': ,
-# }
+combined_best_tests = {
+    'aliceblackwood123@gmail.com': 22,
+    'azizsambo58@gmail.com': 20,
+    'jskim@nsl.inha.ac.kr': 6,
+    'jumabek4044@gmail.com': 22,
+    'laurentkalpers3@gmail.com': 14,
+    'mr.khikmatillo@gmail.com': 24,
+    'nazarov7mu@gmail.com': 26,
+    'nnarziev@gmail.com': 27,
+    'nslabinha@gmail.com': 11,
+    'salman@nsl.inha.ac.kr': 16,
+}

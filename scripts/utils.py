@@ -9,6 +9,7 @@ from sklearn.metrics import balanced_accuracy_score
 from sklearn.preprocessing import MinMaxScaler
 from imblearn.over_sampling import SMOTE
 from scipy.stats import moment
+import plotly.graph_objs as go
 from scripts import settings
 import xgboost as xgb
 import pandas as pd
@@ -448,7 +449,7 @@ def calculate_number_of_test_datasets(participant):
 
 # trains and tests on specified test datasets
 def participant_train_test_xgboost(participant, train_dir, m=None, test_dir=settings.baseline_test_dir, selected_feature_names=settings.basic_selected_features, tune_parameters=False, verbose=False, average=False, model_dir=None):
-    booster = None
+    model = None
     X = None
     Y = None
 
@@ -641,8 +642,9 @@ def participant_train_test_xgboost(participant, train_dir, m=None, test_dir=sett
             # docs : https://xgboost.readthedocs.io/en/latest/parameter.html
             results = {}
             try:
-                booster = xgb.train(train_parameters, dtrain=train_data, num_boost_round=1000, early_stopping_rounds=25, evals=[(evaluation_data, 'test')], verbose_eval=False, evals_result=results, xgb_model=booster)
+                booster = xgb.train(train_parameters, dtrain=train_data, num_boost_round=1000, early_stopping_rounds=25, evals=[(evaluation_data, 'test')], verbose_eval=False, evals_result=results)
                 if test_number == settings.no_filter_best_tests[participant]:
+                    model = booster
                     X = x_train
                     Y = y_train
             except xgb.core.XGBoostError:
@@ -680,9 +682,10 @@ def participant_train_test_xgboost(participant, train_dir, m=None, test_dir=sett
 
     if model_dir is not None:
         txt_model_path = f'{model_dir}/{participant}.txt'
-        bin_model_path = f'{model_dir}/{participant}.txt'
-        booster.dump_model(txt_model_path)
-        booster.save_model(bin_model_path)
+        bin_model_path = f'{model_dir}/{participant}.bin'
+        model.dump_model(txt_model_path)
+        with open(bin_model_path, 'wb+') as w:
+            w.write(model.save_raw()[4:])
         X.to_csv(f'{model_dir}/{participant}_X.csv')
         Y.to_csv(f'{model_dir}/{participant}_Y.csv')
 
@@ -691,6 +694,216 @@ def participant_train_test_xgboost(participant, train_dir, m=None, test_dir=sett
         return params, scores
     else:
         return test_results
+
+
+# train and get model
+def participant_train_for_model(participant, train_dir, test_number, test_dir=settings.baseline_test_dir, tune_parameters=False, verbose=False):
+    model = None
+    X = None
+    Y = None
+
+    ts, test_features, test_labels = load_dataset(directory=f'{test_dir}/{participant}', filename=f'{test_number}.csv', selected_column_names=settings.basic_selected_features, screen_out_timestamps=None)
+    if os.path.exists(f'{train_dir}/{participant}.csv'):
+        _, train_features, train_labels = load_dataset(
+            directory=train_dir,
+            filename=f'{participant}.csv',
+            selected_column_names=settings.basic_selected_features,
+            screen_out_timestamps=ts
+        )
+    else:
+        _, train_features, train_labels = load_dataset(
+            directory=f'{train_dir}/{test_number}',
+            filename=f'{participant}.csv',
+            selected_column_names=settings.basic_selected_features,
+            screen_out_timestamps=ts
+        )
+
+    # configure test dataset
+    scaler = MinMaxScaler()
+    scaler.fit(test_features)
+    test_features_scaled = scaler.transform(test_features)
+    test_features = pd.DataFrame(test_features_scaled, index=test_features.index, columns=test_features.columns)
+
+    k_folds = []
+    splitter = StratifiedKFold(n_splits=5, shuffle=True)
+    for idx, (train_indices, test_indices) in enumerate(splitter.split(train_features, train_labels)):
+        try:
+            x_train = train_features.iloc[train_indices]
+            y_train = train_labels.iloc[train_indices]
+            x_test = train_features.iloc[test_indices]
+            y_test = train_labels.iloc[test_indices]
+            k_folds.append((x_train, y_train, x_test, y_test))
+        except ValueError:
+            test = False
+            continue
+
+    k_folds_sampled = []
+    for idx, (x_train, y_train, x_test, y_test) in enumerate(k_folds):
+        try:
+            sampler = SMOTE()
+            x_sample, y_sample = sampler.fit_resample(x_train, y_train)
+            x_sample = pd.DataFrame(x_sample, columns=x_train.columns)
+            y_sample = pd.Series(y_sample)
+            k_folds_sampled.append((x_sample, y_sample, x_test, y_test))
+        except ValueError:
+            test = False
+            continue
+
+    k_folds_scaled = []
+    for x_train, y_train, x_test, y_test in k_folds_sampled:
+        scaler = MinMaxScaler()
+        scaler.fit(x_train)
+        x_train_scale = scaler.transform(x_train)
+        x_test_scale = scaler.transform(x_test)
+        x_train = pd.DataFrame(x_train_scale, index=x_train.index, columns=x_train.columns)
+        x_test = pd.DataFrame(x_test_scale, index=x_test.index, columns=x_test.columns)
+        k_folds_scaled.append((x_train, y_train, x_test, y_test))
+
+    conf_mtx = np.zeros((2, 2))  # 2 X 2 confusion matrix
+    train_data = xgb.DMatrix(data=train_features, label=train_labels.to_numpy())
+
+    # Parameter tuning / grid search
+    train_parameters = {
+        'max_depth': 6,
+        'min_child_weight': 1,
+        'eta': .3,
+        'subsample': 1,
+        'colsample_bytree': 1,
+        'objective': 'binary:logistic',
+        'booster': 'gbtree',
+        'verbosity': 0,
+        'eval_metric': "auc"
+    }
+    if tune_parameters:
+        if verbose:
+            print('tuning parameters...')
+
+        temporary_parameters = {
+            'max_depth': 6,
+            'min_child_weight': 1,
+            'eta': .3,
+            'subsample': 1,
+            'colsample_bytree': 1,
+            'objective': 'binary:logistic',
+            'booster': 'gbtree',
+            'verbosity': 0,
+            'eval_metric': "auc"
+        }
+        grid_search_params = [(max_depth, min_child_weight) for max_depth in range(0, 12) for min_child_weight in range(0, 8)]
+        current_test_auc = -float("Inf")
+        for max_depth, min_child_weight in grid_search_params:
+            try:
+                # Update our parameters
+                temporary_parameters['max_depth'] = max_depth
+                temporary_parameters['min_child_weight'] = min_child_weight
+                # Run CV
+                cv_results = xgb.cv(temporary_parameters, train_data, nfold=5, metrics=['auc'], early_stopping_rounds=25)
+                # Update best MAE
+                mean_mae = cv_results['test-auc-mean'].max()
+                if mean_mae > current_test_auc:
+                    current_test_auc = mean_mae
+                    train_parameters['max_depth'] = max_depth
+                    train_parameters['min_child_weight'] = min_child_weight
+            except xgb.core.XGBoostError:
+                continue
+
+        grid_search_params = [(subsample, colsample) for subsample in [i / 10. for i in range(7, 11)] for colsample in [i / 10. for i in range(7, 11)]]
+        current_test_auc = -float("Inf")
+        temporary_parameters = {'subsample': None, 'colsample_bytree': None}
+        # We start by the largest values and go down to the smallest
+        for sub_sample, col_sample in reversed(grid_search_params):
+            try:
+                # We update our parameters
+                train_parameters['subsample'] = sub_sample
+                train_parameters['colsample_bytree'] = col_sample
+                # Run CV
+                cv_results = xgb.cv(train_parameters, train_data, num_boost_round=1000, nfold=5, metrics=['auc'], early_stopping_rounds=25)
+                mean_mae = cv_results['test-auc-mean'].max()
+                if mean_mae > current_test_auc:
+                    current_test_auc = mean_mae
+                    temporary_parameters = {'subsample': sub_sample, 'colsample_bytree': col_sample}
+            except xgb.core.XGBoostError:
+                continue
+        train_parameters['subsample'] = temporary_parameters['subsample']
+        train_parameters['colsample_bytree'] = temporary_parameters['colsample_bytree']
+
+        current_test_auc = -float("Inf")
+        temporary_parameters = None
+        for eta in [.3, .2, .1, .05, .01, .005]:
+            try:
+                # We update our parameters
+                train_parameters['eta'] = eta
+                # Run and time CV
+                cv_results = xgb.cv(train_parameters, train_data, num_boost_round=1000, nfold=5, metrics=['auc'], early_stopping_rounds=25)
+                # Update best score
+                mean_mae = cv_results['test-auc-mean'].max()
+                if mean_mae > current_test_auc:
+                    current_test_auc = mean_mae
+                    temporary_parameters = eta
+            except xgb.core.XGBoostError:
+                continue
+        train_parameters['eta'] = temporary_parameters
+
+        current_test_auc = -float("Inf")
+        temporary_parameters = None
+        gamma_range = [i / 10.0 for i in range(0, 25)]
+        for gamma in gamma_range:
+            try:
+                # We update our parameters
+                train_parameters['gamma'] = gamma
+                # Run and time CV
+                cv_results = xgb.cv(train_parameters, train_data, num_boost_round=1000, nfold=5, metrics=['auc'], early_stopping_rounds=25)
+                # Update best score
+                mean_mae = cv_results['test-auc-mean'].max()
+                if mean_mae > current_test_auc:
+                    current_test_auc = mean_mae
+                    temporary_parameters = gamma
+            except xgb.core.XGBoostError:
+                continue
+        train_parameters['gamma'] = temporary_parameters
+
+    for x_train, y_train, x_test, y_test in k_folds_scaled:
+        train_data = xgb.DMatrix(data=x_train, label=y_train.to_numpy())
+        evaluation_data = xgb.DMatrix(data=x_test, label=y_test.to_numpy())
+        test_data = xgb.DMatrix(data=test_features, label=test_labels.to_numpy())
+
+        try:
+            results = {}
+            booster = xgb.train(train_parameters, dtrain=train_data, num_boost_round=1000, early_stopping_rounds=25, evals=[(evaluation_data, 'test')], verbose_eval=False, evals_result=results, xgb_model=model)
+            model = booster
+            X = x_test
+            Y = y_test
+
+            predicted_probabilities = booster.predict(data=test_data, ntree_limit=booster.best_ntree_limit)
+            predicted_labels = np.where(predicted_probabilities > 0.5, 1, 0)
+
+            acc = balanced_accuracy_score(test_labels, predicted_labels)
+            f1 = f1_score(test_labels, predicted_labels, average='macro')
+            roc_auc = roc_auc_score(test_labels, predicted_probabilities)
+            tpr = recall_score(test_labels, predicted_labels)
+            tnr = recall_score(test_labels, predicted_labels, pos_label=0)
+
+            conf_mtx += confusion_matrix(test_labels, predicted_labels)
+
+        except xgb.core.XGBoostError:
+            print(f'(test dataset #{test_number} error)', end=' ', flush=True)
+            continue
+
+    fig = go.Figure(
+        go.Heatmap(
+            x=['Pred. Label = 0', 'Pred Label = 1'],
+            y=['True. Label = 1', 'True. Label = 0'],
+            z=np.flip(conf_mtx, axis=0)
+        )
+    )
+    fig.update_layout(
+        title_text=f'Confusion matrix for XGBoost evaluation ({participant})',
+        xaxis_title_text='Prediction',
+        yaxis_title_text='True (GT)'
+    )
+    fig.show()
+
+    return model, X, Y
 
 
 # save results in a file
