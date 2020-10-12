@@ -7,12 +7,10 @@ start_time = time.time()
 
 all_params, all_scores = {}, {}
 params_cols, scores_cols = [], []
-all_files = [el for el in os.listdir(settings.not_filtered_dataset_dir) if el.endswith('.csv')]
-overall_count = len(all_files)
+overall_count = len(settings.participants)
 counter = 1
-for filename in all_files:
-    participant = filename[:-4]
-    print(f'({counter}/{overall_count}) {participant}')
+for participant in settings.participants:
+    print(f'({counter}/{overall_count}) {participant}', end=', test : ', flush=True)
     counter += 1
 
     all_params[participant] = []
@@ -30,6 +28,7 @@ for filename in all_files:
     except ValueError as e:
         print('error', e)
         continue
+    print()
 
 with open(f"{settings.no_filter_test_results_dir}/scores.csv", "w+") as w_scores:
     with open(f"{settings.no_filter_test_results_dir}/params.csv", "w+") as w_params:

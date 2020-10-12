@@ -448,6 +448,10 @@ def calculate_number_of_test_datasets(participant):
 
 # trains and tests on specified test datasets
 def participant_train_test_xgboost(participant, train_dir, m=None, test_dir=settings.baseline_test_dir, selected_feature_names=settings.basic_selected_features, tune_parameters=False, verbose=False, average=False, model_dir=None):
+    booster = None
+    X = None
+    Y = None
+
     test_datasets = []
     test_results = []
     if verbose:
@@ -461,6 +465,7 @@ def participant_train_test_xgboost(participant, train_dir, m=None, test_dir=sett
 
     test_number = 1
     for ts, test_features, test_labels in test_datasets:
+        print(test_number, end=' ', flush=True)
         test = True
         if os.path.exists(f'{train_dir}/{participant}.csv'):
             _, train_features, train_labels = load_dataset(
@@ -636,12 +641,10 @@ def participant_train_test_xgboost(participant, train_dir, m=None, test_dir=sett
             # docs : https://xgboost.readthedocs.io/en/latest/parameter.html
             results = {}
             try:
-                booster = xgb.train(train_parameters, dtrain=train_data, num_boost_round=1000, early_stopping_rounds=25, evals=[(evaluation_data, 'test')], verbose_eval=False, evals_result=results)
-                if model_dir is not None:
-                    timestamp = get_timestamp_ms()
-                    model_path = f'{model_dir}/model_{timestamp}.txt'
-                    open(model_path, 'w+').close()
-                    booster.dump_model(model_path)
+                booster = xgb.train(train_parameters, dtrain=train_data, num_boost_round=1000, early_stopping_rounds=25, evals=[(evaluation_data, 'test')], verbose_eval=False, evals_result=results, xgb_model=booster)
+                if test_number == settings.no_filter_best_tests[participant]:
+                    X = x_train
+                    Y = y_train
             except xgb.core.XGBoostError:
                 print(f'(test dataset #{test_number} error)', end=' ', flush=True)
                 continue
@@ -674,6 +677,14 @@ def participant_train_test_xgboost(participant, train_dir, m=None, test_dir=sett
 
             test_results += [[train_parameters, folds_scores]]
         test_number += 1
+
+    if model_dir is not None:
+        txt_model_path = f'{model_dir}/{participant}.txt'
+        bin_model_path = f'{model_dir}/{participant}.txt'
+        booster.dump_model(txt_model_path)
+        booster.save_model(bin_model_path)
+        X.to_csv(f'{model_dir}/{participant}_X.csv')
+        Y.to_csv(f'{model_dir}/{participant}_Y.csv')
 
     if average:
         params, scores = np.average(test_results, axis=0)

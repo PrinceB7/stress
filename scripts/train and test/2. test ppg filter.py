@@ -7,18 +7,16 @@ start_time = time.time()
 
 all_params, all_scores = {}, {}
 params_cols, scores_cols = [], []
-all_files = [el for el in os.listdir(settings.ppg_filtered_dataset_dir) if el.endswith('.csv')]
-overall_count = len(all_files)
+overall_count = len(settings.participants)
 counter = 1
-for filename in [el for el in os.listdir(settings.ppg_filtered_dataset_dir) if el.endswith('.csv')]:
-    participant = filename[:-4]
-    print(f'({counter}/{overall_count}) {participant}')
+for participant in settings.participants:
+    print(f'({counter}/{overall_count}) {participant}', end=', test : ', flush=True)
     counter += 1
 
     all_params[participant] = []
     all_scores[participant] = []
     try:
-        for params, scores in utils.participant_train_test_xgboost(participant=participant, train_dir=settings.ppg_filtered_dataset_dir, m=settings.m, tune_parameters=True, model_dir=settings.ppg_filtered_model_dir):
+        for params, scores in utils.participant_train_test_xgboost(participant=participant, train_dir=settings.ppg_filtered_dataset_dir, m=settings.m, model_dir=settings.ppg_filtered_model_dir):
             if len(params_cols) + len(scores_cols) == 0:
                 params_cols = list(params.keys())
                 params_cols.sort()
@@ -30,6 +28,7 @@ for filename in [el for el in os.listdir(settings.ppg_filtered_dataset_dir) if e
     except ValueError:
         print('error')
         continue
+    print()
 
 with open(f"{settings.ppg_filter_test_results_dir}/scores.csv", "w+") as w_scores:
     with open(f"{settings.ppg_filter_test_results_dir}/params.csv", "w+") as w_params:
