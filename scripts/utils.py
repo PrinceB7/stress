@@ -695,7 +695,7 @@ def participant_train_test_xgboost(participant, train_dir, m=None, test_dir=sett
 # train and get model
 def participant_train_for_model(participant, train_dir, test_number, test_dir=settings.baseline_test_dir, tune_parameters=False, verbose=False):
     models = []
-    X = []
+    X_tests = []
 
     ts, test_features, test_labels = load_dataset(directory=f'{test_dir}/{participant}', filename=f'{test_number}.csv', selected_column_names=settings.basic_selected_features, screen_out_timestamps=None)
     if os.path.exists(f'{train_dir}/{participant}.csv'):
@@ -864,7 +864,7 @@ def participant_train_for_model(participant, train_dir, test_number, test_dir=se
 
         try:
             results = {}
-            booster = xgb.train(train_parameters, dtrain=train_data, num_boost_round=1000, early_stopping_rounds=25, evals=[(evaluation_data, 'test')], verbose_eval=False, evals_result=results, xgb_model=model)
+            booster = xgb.train(train_parameters, dtrain=train_data, num_boost_round=1000, early_stopping_rounds=25, evals=[(evaluation_data, 'test')], verbose_eval=False, evals_result=results)
 
             predicted_probabilities = booster.predict(data=test_data, ntree_limit=booster.best_ntree_limit)
             predicted_labels = np.where(predicted_probabilities > 0.5, 1, 0)
@@ -876,14 +876,14 @@ def participant_train_for_model(participant, train_dir, test_number, test_dir=se
             tnr = recall_score(test_labels, predicted_labels, pos_label=0)
 
             models += [booster]
-            X += [x_test]
+            X_tests += [x_test]
             conf_mtx += confusion_matrix(test_labels, predicted_labels)
 
         except xgb.core.XGBoostError:
             print(f'(test dataset #{test_number} error)', end=' ', flush=True)
             continue
 
-    return models, X, conf_mtx
+    return models, X_tests, conf_mtx
 
 
 # save results in a file
