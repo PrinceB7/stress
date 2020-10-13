@@ -449,10 +449,6 @@ def calculate_number_of_test_datasets(participant):
 
 # trains and tests on specified test datasets
 def participant_train_test_xgboost(participant, train_dir, m=None, test_dir=settings.baseline_test_dir, selected_feature_names=settings.basic_selected_features, tune_parameters=False, verbose=False, average=False, model_dir=None):
-    model = None
-    X = None
-    Y = None
-
     test_datasets = []
     test_results = []
     if verbose:
@@ -698,9 +694,8 @@ def participant_train_test_xgboost(participant, train_dir, m=None, test_dir=sett
 
 # train and get model
 def participant_train_for_model(participant, train_dir, test_number, test_dir=settings.baseline_test_dir, tune_parameters=False, verbose=False):
-    model = None
-    X = None
-    Y = None
+    models = []
+    X = []
 
     ts, test_features, test_labels = load_dataset(directory=f'{test_dir}/{participant}', filename=f'{test_number}.csv', selected_column_names=settings.basic_selected_features, screen_out_timestamps=None)
     if os.path.exists(f'{train_dir}/{participant}.csv'):
@@ -870,9 +865,6 @@ def participant_train_for_model(participant, train_dir, test_number, test_dir=se
         try:
             results = {}
             booster = xgb.train(train_parameters, dtrain=train_data, num_boost_round=1000, early_stopping_rounds=25, evals=[(evaluation_data, 'test')], verbose_eval=False, evals_result=results, xgb_model=model)
-            model = booster
-            X = x_test
-            Y = y_test
 
             predicted_probabilities = booster.predict(data=test_data, ntree_limit=booster.best_ntree_limit)
             predicted_labels = np.where(predicted_probabilities > 0.5, 1, 0)
@@ -883,27 +875,15 @@ def participant_train_for_model(participant, train_dir, test_number, test_dir=se
             tpr = recall_score(test_labels, predicted_labels)
             tnr = recall_score(test_labels, predicted_labels, pos_label=0)
 
+            models += [booster]
+            X += [x_test]
             conf_mtx += confusion_matrix(test_labels, predicted_labels)
 
         except xgb.core.XGBoostError:
             print(f'(test dataset #{test_number} error)', end=' ', flush=True)
             continue
 
-    fig = go.Figure(
-        go.Heatmap(
-            x=['Pred. Label = 0', 'Pred Label = 1'],
-            y=['True. Label = 1', 'True. Label = 0'],
-            z=np.flip(conf_mtx, axis=0)
-        )
-    )
-    fig.update_layout(
-        title_text=f'Confusion matrix for XGBoost evaluation ({participant})',
-        xaxis_title_text='Prediction',
-        yaxis_title_text='True (GT)'
-    )
-    fig.show()
-
-    return model, X, Y
+    return models, X, conf_mtx
 
 
 # save results in a file
