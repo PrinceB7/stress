@@ -694,8 +694,8 @@ def participant_train_test_xgboost(participant, train_dir, m=None, test_dir=sett
 
 # train and get model
 def participant_train_for_model(participant, train_dir, test_dir=settings.baseline_test_dir, test_number=None, tune_parameters=False, verbose=False):
-    models = []
-    X_tests = []
+    all_models = []
+    all_test_features = []
     conf_mtx = np.zeros((2, 2))  # 2 X 2 confusion matrix
 
     test_numbers = []
@@ -869,31 +869,31 @@ def participant_train_for_model(participant, train_dir, test_dir=settings.baseli
 
         for x_train, y_train, x_test, y_test in k_folds_scaled:
             train_data = xgb.DMatrix(data=x_train, label=y_train.to_numpy())
-        evaluation_data = xgb.DMatrix(data=x_test, label=y_test.to_numpy())
-        test_data = xgb.DMatrix(data=test_features, label=test_labels.to_numpy())
+            evaluation_data = xgb.DMatrix(data=x_test, label=y_test.to_numpy())
+            test_data = xgb.DMatrix(data=test_features, label=test_labels.to_numpy())
 
-        try:
-            results = {}
-            booster = xgb.train(train_parameters, dtrain=train_data, num_boost_round=1000, early_stopping_rounds=25, evals=[(evaluation_data, 'test')], verbose_eval=False, evals_result=results)
+            try:
+                results = {}
+                booster = xgb.train(train_parameters, dtrain=train_data, num_boost_round=1000, early_stopping_rounds=25, evals=[(evaluation_data, 'test')], verbose_eval=False, evals_result=results)
 
-            predicted_probabilities = booster.predict(data=test_data, ntree_limit=booster.best_ntree_limit)
-            predicted_labels = np.where(predicted_probabilities > 0.5, 1, 0)
+                predicted_probabilities = booster.predict(data=test_data, ntree_limit=booster.best_ntree_limit)
+                predicted_labels = np.where(predicted_probabilities > 0.5, 1, 0)
 
-            acc = balanced_accuracy_score(test_labels, predicted_labels)
-            f1 = f1_score(test_labels, predicted_labels, average='macro')
-            roc_auc = roc_auc_score(test_labels, predicted_probabilities)
-            tpr = recall_score(test_labels, predicted_labels)
-            tnr = recall_score(test_labels, predicted_labels, pos_label=0)
+                # acc = balanced_accuracy_score(test_labels, predicted_labels)
+                # f1 = f1_score(test_labels, predicted_labels, average='macro')
+                # roc_auc = roc_auc_score(test_labels, predicted_probabilities)
+                # tpr = recall_score(test_labels, predicted_labels)
+                # tnr = recall_score(test_labels, predicted_labels, pos_label=0)
 
-            models += [booster]
-            X_tests += [x_test]
-            conf_mtx += confusion_matrix(test_labels, predicted_labels)
+                all_models += [booster]
+                all_test_features += [test_features]
+                conf_mtx += confusion_matrix(test_labels, predicted_labels)
 
-        except xgb.core.XGBoostError:
-            print(f'(test dataset #{test_number} error)', end=' ', flush=True)
-            continue
+            except xgb.core.XGBoostError:
+                print(f'(test dataset #{test_number} error)', end=' ', flush=True)
+                continue
 
-    return models, X_tests, conf_mtx
+    return all_models, all_test_features, conf_mtx
 
 
 # save results in a file
