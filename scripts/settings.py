@@ -33,6 +33,7 @@ combined_filtered_model_dir = f'{root_dir}/data/models/4. combined filtered'
 # stats files
 combined_filter_stats_dir = f'{root_dir}/data/statistics/combined filter stats'
 one_day_dataset_dir = f'{root_dir}/data/statistics/select 1 day'
+plots_dir = f'{root_dir}/data/statistics/plots'
 
 # participants / emails
 participants = [

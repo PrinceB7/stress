@@ -10,9 +10,23 @@ import matplotlib
 import pickle
 import time
 import shap
+import os
 
 
-def plot_models(filter_name, participants):
+def save_fig_as_plot(filter_name, title, participant, figure):
+    if not os.path.exists(f'{settings.plots_dir}/{filter_name}'):
+        os.mkdir(f'{settings.plots_dir}/{filter_name}')
+        os.mkdir(f'{settings.plots_dir}/{filter_name}/{participant}')
+    elif not os.path.exists(f'{settings.plots_dir}/{filter_name}/{participant}'):
+        os.mkdir(f'{settings.plots_dir}/{filter_name}/{participant}')
+
+    if title == 'shap':
+        figure.savefig(f'{settings.plots_dir}/{filter_name}/{participant}/{title}.png', dpi=200)
+    else:
+        figure.write_image(f'{settings.plots_dir}/{filter_name}/{participant}/{title}.png', scale=2.0)
+
+
+def plot_test_graphs(filter_name, participants):
     # region detect filter
     train_dir = None
     test_numbers = None
@@ -34,16 +48,16 @@ def plot_models(filter_name, participants):
     # endregion
 
     for participant in participants:
-        models, X_tests, conf_mtx = utils.participant_train_for_model(participant=participant, train_dir=train_dir, test_number=test_numbers[participant])
+        models, X_tests, conf_mtx = utils.participant_train_for_model(participant=participant, train_dir=train_dir)
 
         # region plot confusion matrix
         fig = go.Figure(
-            go.Heatmap(
+            ff.create_annotated_heatmap(
                 x=['Prediction = no stress', 'Prediction = stress'],
                 y=['Ground truth = stress', 'GT = no stress'],
                 z=np.flip(conf_mtx, axis=0),
                 colorscale=[[0, 'rgb(0,0,0)'], [1, 'rgb(255,255,255)']],
-            ), go.Layout(
+            ), layout=go.Layout(
                 paper_bgcolor='#f2f8ff',
                 plot_bgcolor='#f2f8ff'
             )
@@ -54,7 +68,8 @@ def plot_models(filter_name, participants):
             yaxis_title_text='GT',
             bargap=1,
         )
-        fig.show()
+        # fig.show()
+        save_fig_as_plot(filter_name=filter_name, title='confusion_matrix', participant=participant, figure=fig)
         # endregion
 
         # region plot feature importance
@@ -85,7 +100,8 @@ def plot_models(filter_name, participants):
             title_text=f'{filter_name}, {participant}',
             yaxis_title_text='Feature importances'
         )
-        fig.show()
+        # fig.show()
+        save_fig_as_plot(filter_name=filter_name, title='feature_importance', participant=participant, figure=fig)
         # endregion
 
         # region plot shap
@@ -101,15 +117,17 @@ def plot_models(filter_name, participants):
         fig = plt.figure()
         fig.suptitle(f'{filter_name}, {participant}', fontsize=20)
         plt.rcParams['axes.facecolor'] = '#f2f8ff'
+        plt.xlim(-6, 6)
         shap.summary_plot(shap_values, test_features, show=False, cmap=plt.get_cmap('gray'), sort=False)
-        plt.show()
+        # plt.show()
+        save_fig_as_plot(filter_name=filter_name, title='shap', participant=participant, figure=fig)
         # endregion
 
 
 def main():
     participants = ['azizsambo58@gmail.com', 'nslabinha@gmail.com', 'nnarziev@gmail.com', 'jskim@nsl.inha.ac.kr']
-    plot_models(filter_name='no filter', participants=participants)
-    # plot_models(filter_name='combined', participants=participants)
+    plot_test_graphs(filter_name='no filter', participants=participants)
+    # plot_test_graphs(filter_name='combined', participants=participants)
 
 
 if __name__ == '__main__':
