@@ -693,22 +693,20 @@ def participant_train_test_xgboost(participant, train_dir, m=None, test_dir=sett
 
 
 # train and get model
-def participant_train_for_model(participant, train_dir, test_dir=settings.baseline_test_dir, test_number=None, tune_parameters=False, verbose=False):
+def participant_train_for_model(participant, train_dir, tune_parameters=False):
     all_models = []
     all_test_features = []
+    all_test_scores = []
     conf_mtx = np.zeros((2, 2))  # 2 X 2 confusion matrix
 
     test_numbers = []
-    if test_number is not None:
-        test_numbers += [test_number]
-    else:
-        for test_number in os.listdir(f'{test_dir}/{settings.participants[0]}'):
-            if test_number.endswith('.csv') and test_number[:-4].isdigit():
-                test_numbers += [int(test_number[:-4])]
+    for test_number in os.listdir(f'{settings.baseline_test_dir}/{settings.participants[0]}'):
+        if test_number.endswith('.csv') and test_number[:-4].isdigit():
+            test_numbers += [int(test_number[:-4])]
     test_numbers.sort()
 
     for test_number in test_numbers:
-        ts, test_features, test_labels = load_dataset(directory=f'{test_dir}/{participant}', filename=f'{test_number}.csv', selected_column_names=settings.basic_selected_features, screen_out_timestamps=None)
+        ts, test_features, test_labels = load_dataset(directory=f'{settings.baseline_test_dir}/{participant}', filename=f'{test_number}.csv', selected_column_names=settings.basic_selected_features, screen_out_timestamps=None)
         if os.path.exists(f'{train_dir}/{participant}.csv'):
             _, train_features, train_labels = load_dataset(
                 directory=train_dir,
@@ -780,9 +778,6 @@ def participant_train_for_model(participant, train_dir, test_dir=settings.baseli
             'eval_metric': "auc"
         }
         if tune_parameters:
-            if verbose:
-                print('tuning parameters...')
-
             temporary_parameters = {
                 'max_depth': 6,
                 'min_child_weight': 1,
@@ -880,20 +875,21 @@ def participant_train_for_model(participant, train_dir, test_dir=settings.baseli
                 predicted_labels = np.where(predicted_probabilities > 0.5, 1, 0)
 
                 # acc = balanced_accuracy_score(test_labels, predicted_labels)
-                # f1 = f1_score(test_labels, predicted_labels, average='macro')
-                # roc_auc = roc_auc_score(test_labels, predicted_probabilities)
+                f1 = f1_score(test_labels, predicted_labels, average='macro')
+                roc_auc = roc_auc_score(test_labels, predicted_probabilities)
                 # tpr = recall_score(test_labels, predicted_labels)
                 # tnr = recall_score(test_labels, predicted_labels, pos_label=0)
 
                 all_models += [booster]
                 all_test_features += [test_features]
+                all_test_scores += [(f1, roc_auc)]
                 conf_mtx += confusion_matrix(test_labels, predicted_labels)
 
             except xgb.core.XGBoostError:
                 print(f'(test dataset #{test_number} error)', end=' ', flush=True)
                 continue
 
-    return all_models, all_test_features, conf_mtx
+    return all_models, all_test_features, all_test_scores, conf_mtx
 
 
 # save results in a file

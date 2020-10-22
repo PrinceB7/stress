@@ -1,3 +1,37 @@
+import os
+
+
+def init_paths():
+    gl = globals()
+    cwd = os.getcwd().replace('\\', '/')
+    gl['root_dir'] = cwd[:cwd.rindex('stress') + 6]
+    gl['raw_dataset_dir'] = f'{gl["root_dir"]}/data/initial dataset/raw sensing dataset'
+    gl['untouched_ground_truths_file'] = f'{gl["root_dir"]}/data/initial dataset/all_ESMs.csv'
+    gl['filtered_ground_truths_file'] = f'{gl["root_dir"]}/data/initial dataset/filtered_ESMs.csv'
+    gl['baseline_test_dir'] = f'{gl["root_dir"]}/data/initial dataset/test datasets/baseline'
+    gl['statistics_dir'] = f'{gl["root_dir"]}/data/statistics'
+    gl['not_filtered_dataset_dir'] = f'{gl["root_dir"]}/data/processed dataset/1. not filtered dataset'
+    gl['ppg_filtered_dataset_dir'] = f'{gl["root_dir"]}/data/processed dataset/2. ppg filtered dataset'
+    gl['acc_filtered_dataset_dir'] = f'{gl["root_dir"]}/data/processed dataset/3. acc filtered dataset'
+    gl['combined_filtered_dataset_dir'] = f'{gl["root_dir"]}/data/processed dataset/4. combined filtered dataset'
+    gl['behavioral_features_dataset_dir'] = f'{gl["root_dir"]}/data/processed dataset/5. behavioral features dataset'
+    gl['behavioral_features_combinations_dir'] = f'{gl["root_dir"]}/data/processed dataset/6. behavioral features combinations'
+    gl['no_filter_test_results_dir'] = f'{gl["root_dir"]}/data/test results/1. not filtered'
+    gl['ppg_filter_test_results_dir'] = f'{gl["root_dir"]}/data/test results/2. ppg filtered'
+    gl['acc_filter_test_results_dir'] = f'{gl["root_dir"]}/data/test results/3. acc filtered'
+    gl['combined_filter_test_results_dir'] = f'{gl["root_dir"]}/data/test results/4. combined filtered'
+    gl['behavioral_data_test_results_dir'] = f'{gl["root_dir"]}/data/test results/5. behavioral data'
+    gl['behavioral_data_combinations_test_results_dir'] = f'{gl["root_dir"]}/data/test results/6. behavioral data combinations'
+    gl['not_filtered_model_dir'] = f'{gl["root_dir"]}/data/models/1. not filtered'
+    gl['ppg_filtered_model_dir'] = f'{gl["root_dir"]}/data/models/2. ppg filtered'
+    gl['acc_filtered_model_dir'] = f'{gl["root_dir"]}/data/models/3. acc filtered'
+    gl['combined_filtered_model_dir'] = f'{gl["root_dir"]}/data/models/4. combined filtered'
+    gl['combined_filter_stats_dir'] = f'{gl["root_dir"]}/data/statistics/combined filter stats'
+    gl['one_day_dataset_dir'] = f'{gl["root_dir"]}/data/statistics/select 1 day'
+    gl['plots_dir'] = f'{gl["root_dir"]}/data/statistics/plots'
+    print('root_dir', gl['root_dir'])
+
+
 # raw dataset paths
 root_dir = '/Users/kevin/Desktop/stress'
 raw_dataset_dir = f'{root_dir}/data/initial dataset/raw sensing dataset'
